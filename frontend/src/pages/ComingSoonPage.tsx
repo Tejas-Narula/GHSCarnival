@@ -23,7 +23,6 @@ export default function ComingSoonPage() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
-            We are going to launch our website very soon.
             <span className="block">Stay tuned.</span>
           </p>
 
