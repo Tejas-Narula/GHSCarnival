@@ -7,12 +7,12 @@ type TeamTabsProps = {
 };
 
 const tabs: { id: TabId; label: string; activeColor: string }[] = [
-  { id: "all", label: "All", activeColor:"bg-gray-800 text-white"},
-  { id: "core", label: "Core" , activeColor:"bg-[#feb947] text-white"},
-  { id: "tech", label: "Tech", activeColor:"bg-[#e06734] text-white" },
-  { id: "events", label: "Events" , activeColor:"bg-[#cc5743] text-white"},
-  { id: "design", label: "Design" , activeColor:"bg-[#b94d4e] text-white"},
-  { id: "marketing", label: "Marketing", activeColor:"bg-[#9b4263] text-white" },
+  { id: "all", label: "All", activeColor:"bg-[#febc88] text-white"},
+  { id: "core", label: "Core" , activeColor:"bg-[#e7b39f] text-white"},
+  { id: "tech", label: "Tech", activeColor:"bg-[#cfa7b8]   text-white" },
+  { id: "events", label: "Events" , activeColor:"bg-[#bc9ecd] text-white"},
+  { id: "design", label: "Design" , activeColor:"bg-[#a594e4] text-white"},
+  { id: "marketing", label: "Marketing", activeColor:"bg-[#8e89fd] text-white" },
 ];
 
 export default function TeamTabs({ onTabChange }: TeamTabsProps) {
