@@ -1,6 +1,9 @@
 import {teamColors} from "../../constants/TeamsPage/teamColors";
-import { FaLinkedin, FaEnvelope } from "react-icons/fa";
-  
+import { FaLinkedin, FaEnvelope} from "react-icons/fa";
+
+// import {Linkedin} from 'lucide-react';
+
+
 
 type Team =
   | "all"
@@ -18,6 +21,7 @@ type Member = {
   linkedin: string;
   email: string;
   image:string;
+  
 };
 
 type MemberCardProps = {
@@ -86,6 +90,9 @@ function MemberCard({ member, activeTab }:MemberCardProps) {
             active:scale-95">
           <FaEnvelope size={24} />
         </a>
+
+        
+        
 
         
       </div>

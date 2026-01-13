@@ -17,6 +17,7 @@ export type Member = {
   linkedin: string;
   email: string;
   image: string;
+  
 };
 
 
@@ -32,6 +33,7 @@ export const members: Member[]=[
     linkedin:"https://www.linkedin.com/in/geetanshi-malik-b12221229/",
     email:"susan.johnson@gmai.com",
     image:susanImg
+    
 
   },
   {
@@ -42,6 +44,7 @@ export const members: Member[]=[
     linkedin:"https://www.linkedin.com/in/geetanshi-malik-b12221229/",
     email:"susan.johnson@gmai.com",
     image:susanImg
+    
   },
   {
     id: 3,
@@ -51,6 +54,7 @@ export const members: Member[]=[
     linkedin:"https://www.linkedin.com/in/geetanshi-malik-b12221229/",
     email:"susan.johnson@gmai.com",
     image:susanImg
+    
   },{
     id: 4,
     name: "Damon",
@@ -59,5 +63,6 @@ export const members: Member[]=[
     linkedin:"https://www.linkedin.com/in/geetanshi-malik-b12221229/",
     email:"susan.johnson@gmai.com",
     image: susanImg
+    
   }
 ];
