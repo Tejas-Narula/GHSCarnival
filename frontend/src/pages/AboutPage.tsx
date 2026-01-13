@@ -7,9 +7,12 @@ const AboutPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const carouselImages = [
-    { url: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80', alt: 'Box Cricket Action' },
-    { url: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&q=80', alt: 'Chess' },
-    { url: 'https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&q=80', alt: 'Table Tennis Smash' },
+    { url: './about/1.jpg', alt: 'Box Cricket Action' },
+    { url: './about/2.jpg', alt: 'Box Cricket Action' },
+    { url: './about/3.jpg', alt: 'Table Tennis Smash' },
+    { url: './about/4.jpg', alt: 'Basket Ball'},
+    { url: './about/5.jpg', alt: 'chess'},
+    { url: './about/6.jpg', alt: 'Sqaush'},
   ];
 
   const nextSlide = useCallback(() => {
@@ -109,7 +112,8 @@ const AboutPage: React.FC = () => {
           {[
             { q: "How do I register my block team?", a: "Registrations are handled by your respective Block Sports Representative." },
             { q: "Where can I see the live standings?", a: "The 'Live Scores' tab on the homepage updates instantly." },
-            { q: "Is there a prize for the overall champion?", a: "The block with the highest points wins the GHS Carnival Trophy." }
+            { q: "Is there a prize for the overall champion?", a: "The block with the highest points wins the GHS Carnival Trophy." },
+            { q: "How many sports would be played in the carnival?", a: "In total 11 sports would be played in the GHS Carnival." }
           ].map((faq, i) => (
             <div key={i} className="bg-white/90 rounded-2xl border border-orange-100 shadow-lg">
               <button 
