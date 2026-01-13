@@ -103,11 +103,17 @@ const LandingPage = () => {
               Quick Links
             </h4>
 
-            <div className="space-y-[14px] text-[14px] font-semibold">
-              <div className="flex items-center gap-[12px]">
+           <div className="space-y-[14px] text-[14px] font-semibold">
+              {/* ✅ INSTAGRAM LINK */}
+              <a
+                href="https://www.instagram.com/ghs.carnival_muj/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-[12px] hover:text-[#FF8736]"
+              >
                 <FaInstagram className="text-[20px] text-pink-500" />
                 <span>GHS CARNIVAL’s Official Page</span>
-              </div>
+              </a>
 
               <div className="flex items-center gap-[12px]">
                 <FaGlobe className="text-[20px] text-blue-500" />
@@ -139,7 +145,11 @@ const LandingPage = () => {
               <FaUsers className="text-[18px]" />
               Dev Team
             </div>
-
+</div>
+<div className="flex flex-col items-center">
+              <FaCrown className="text-[18px]" />
+              Block Captains
+            </div> 
             <div className="flex flex-col items-center">
               <FaChartBar className="text-[18px]" />
               Live Score
