@@ -7,9 +7,9 @@ const AboutPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const carouselImages = [
-    { url: 'https://static.toiimg.com/thumb/imgsize-23456,msid-121105324,width-600,resizemode-4/box-cricket-is-hugely-popular-in-urban-gujarat.jpg', alt: 'Box Cricket Action' },
-    { url: 'https://i0.wp.com/scoutlife.org/wp-content/uploads/2017/03/chess-1.jpg?resize=620%2C465&ssl=1', alt: 'Chess' },
-    { url: 'https://i.ytimg.com/vi/b1OnBNAA3IA/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBi_AtHEMeRKYOA_TZvRnMEkyEQyw', alt: 'Table Tennis Smash' },
+    { url: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80', alt: 'Box Cricket Action' },
+    { url: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&q=80', alt: 'Chess' },
+    { url: 'https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&q=80', alt: 'Table Tennis Smash' },
   ];
 
   const nextSlide = useCallback(() => {
@@ -22,127 +22,105 @@ const AboutPage: React.FC = () => {
   }, [nextSlide]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFFBEB] via-[#FFF7ED] to-[#FFEDD5] text-gray-800 font-sans pb-20 relative">
+    <div className="min-h-screen text-gray-800 font-sans pb-20 relative">
       
+      {/* BACKGROUND LAYER - No Blur */}
+      <div 
+        className="fixed inset-0 -z-10 bg-no-repeat 
+                   bg-[url('./Background.png')] 
+                   bg-center bg-cover md:bg-fixed"
+      />
+
       {/* Logo in Top Left */}
-      <div className="absolute top-6 left-16 z-20">
+      <div className="absolute top-6 left-6 md:left-16 z-20">
         <img 
-          src="./ghs_carnival_logo.png" 
+          src="/ghs_carnival_logo.png" 
           alt="GHS Carnival Logo" 
-          className="h-16 w-auto object-contain drop-shadow-md"
+          className="h-14 md:h-20 w-auto object-contain drop-shadow-lg"
         />
       </div>
 
       {/* 1. Header & Description Section */}
-      <section className="max-w-4xl mx-auto pt-24 px-6 text-center">
-        <h1 className="text-5xl font-extrabold text-[#D97706] mb-6 tracking-tight drop-shadow-sm">
+      <section className="max-w-4xl mx-auto pt-28 md:pt-40 px-6 text-center">
+        <h1 
+          className="text-5xl md:text-8xl font-kdam uppercase text-[#92400E] mb-10 tracking-tight drop-shadow-md"
+        >
           About GHS Carnival
         </h1>
-        <p className="text-xl leading-relaxed text-gray-700">
-          The <span className="font-bold text-[#D97706]">GHS Carnival</span> is the ultimate celebration of sportsmanship, grit, and hostel brotherhood. 
-          More than just a tournament, it’s where legends are born on the box cricket pitch and 
-          rivalries are settled. Our platform provides <span className="font-bold text-orange-600 underline decoration-orange-400 decoration-2 underline-offset-4">real-time live scores</span> and updates to ensure you never miss a single run, goal, or point—no matter where you are in the hostel.
-        </p>
+        <div className="bg-white/30 p-6 rounded-3xl inline-block">
+            <p className="text-lg md:text-xl leading-relaxed text-gray-900 max-w-2xl mx-auto font-medium">
+            The <span className="font-bold text-[#D97706]">GHS Carnival</span> is the ultimate celebration of sportsmanship, grit, and hostel brotherhood. 
+            More than just a tournament, it’s where legends are born.
+            </p>
+        </div>
       </section>
 
       {/* 2. Stats/Highlights Section */}
       <section className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/60 shadow-sm flex flex-col items-center text-center hover:bg-white/60 transition-colors">
-          <div className="bg-gradient-to-br from-orange-400 to-orange-600 p-3 rounded-2xl mb-4 shadow-lg shadow-orange-200">
-            <Trophy className="text-white" size={28} />
+        {[
+          { icon: Trophy, label: "5+ Sports", sub: "Cricket to Table Tennis" },
+          { icon: Users, label: "10+ Blocks", sub: "Inter-Hostel Rivalry" },
+          { icon: Star, label: "Live Engine", sub: "Instant Ball Updates" }
+        ].map((item, idx) => (
+          <div key={idx} className="bg-white/80 p-8 rounded-[2rem] border border-white/50 shadow-2xl flex flex-col items-center text-center">
+            <div className="bg-[#D97706] p-4 rounded-2xl mb-4 shadow-lg">
+              <item.icon className="text-white" size={32} />
+            </div>
+            <h3 className="font-bold text-2xl text-gray-900">{item.label}</h3>
+            <p className="text-gray-600 mt-1 font-medium">{item.sub}</p>
           </div>
-          <h3 className="font-black text-2xl text-gray-900">5+ Sports</h3>
-          <p className="text-gray-600 mt-1 font-medium">Cricket to Table Tennis</p>
-        </div>
-
-        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/60 shadow-sm flex flex-col items-center text-center hover:bg-white/60 transition-colors">
-          <div className="bg-gradient-to-br from-orange-400 to-orange-600 p-3 rounded-2xl mb-4 shadow-lg shadow-orange-200">
-            <Users className="text-white" size={28} />
-          </div>
-          <h3 className="font-black text-2xl text-gray-900">10+ Blocks</h3>
-          <p className="text-gray-600 mt-1 font-medium">Inter-Hostel Rivalry</p>
-        </div>
-
-        <div className="bg-white/40 backdrop-blur-md p-6 rounded-3xl border border-white/60 shadow-sm flex flex-col items-center text-center hover:bg-white/60 transition-colors">
-          <div className="bg-gradient-to-br from-orange-400 to-orange-600 p-3 rounded-2xl mb-4 shadow-lg shadow-orange-200">
-            <Star className="text-white" size={28} />
-          </div>
-          <h3 className="font-black text-2xl text-gray-900">Live Engine</h3>
-          <p className="text-gray-600 mt-1 font-medium">Instant Ball-by-Ball Updates</p>
-        </div>
+        ))}
       </section>
 
       {/* 3. Interactive Carousel Section */}
-      <section className="max-w-6xl mx-auto px-6 mb-20">
+      <section className="max-w-5xl mx-auto px-6 mb-20">
         <div 
           onClick={nextSlide}
-          className="relative overflow-hidden rounded-[2.5rem] border-[8px] border-white shadow-2xl aspect-video cursor-pointer group"
+          className="relative overflow-hidden rounded-[2.5rem] border-[8px] border-white shadow-2xl aspect-[4/3] md:aspect-video cursor-pointer group"
         >
           {carouselImages.map((image, index) => (
             <div
               key={index}
               className={`absolute inset-0 transition-all duration-1000 ease-in-out transform ${
-                index === activeSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+                index === activeSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
               }`}
             >
-              <img
-                src={image.url}
-                alt={image.alt}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-orange-950/60 via-transparent to-transparent" />
-              
-              <div className="absolute bottom-10 left-10">
-                 <p className="text-white font-bold text-2xl md:text-3xl drop-shadow-lg italic">
+              <img src={image.url} alt={image.alt} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+              <div className="absolute bottom-8 left-8">
+                 <p className="text-white font-medium text-2xl md:text-3xl italic tracking-wide">
                     {image.alt}
-                 </p>
-                 {/* RESTORED: Click to see next hint */}
-                 <p className="text-orange-200 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                   Click to see next →
                  </p>
               </div>
             </div>
           ))}
-
-          {/* Indicators */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3 z-10">
-            {carouselImages.map((_, index) => (
-              <button
-                key={index}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveSlide(index);
-                }}
-                className={`h-2.5 transition-all duration-500 rounded-full ${
-                  index === activeSlide 
-                    ? 'bg-orange-500 w-12' 
-                    : 'bg-white/60 w-2.5 hover:bg-white'
-                }`}
-              />
-            ))}
-          </div>
         </div>
       </section>
 
       {/* 4. FAQs Section */}
-      <section className="max-w-3xl mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center text-[#92400E] mb-8">Common Questions</h2>
+      <section className="max-w-3xl mx-auto px-6 pb-32">
+        <h2 
+          style={{ fontFamily: "'Italiana', serif" }}
+          className="text-4xl md:text-5xl text-center text-[#92400E] mb-10 drop-shadow-sm"
+        >
+          Common Questions
+        </h2>
         <div className="space-y-4">
           {[
-            { q: "How do I register my block team?", a: "Registrations are handled by your respective Block Sports Representative. Contact them with your roster." },
-            { q: "Where can I see the live standings?", a: "The 'Live Scores' tab on the homepage updates instantly after every match." },
-            { q: "Is there a prize for the overall champion?", a: "Yes! The block with the highest cumulative points across all sports wins the GHS Carnival Trophy." }
+            { q: "How do I register my block team?", a: "Registrations are handled by your respective Block Sports Representative." },
+            { q: "Where can I see the live standings?", a: "The 'Live Scores' tab on the homepage updates instantly." },
+            { q: "Is there a prize for the overall champion?", a: "The block with the highest points wins the GHS Carnival Trophy." }
           ].map((faq, i) => (
-            <div key={i} className="bg-white/50 rounded-2xl overflow-hidden border border-orange-100">
+            <div key={i} className="bg-white/90 rounded-2xl border border-orange-100 shadow-lg">
               <button 
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="w-full p-5 text-left flex justify-between items-center font-bold text-gray-800"
+                className="w-full p-6 text-left flex justify-between items-center font-bold text-gray-800"
               >
                 {faq.q}
-                <ChevronDown className={`transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`transition-transform duration-300 ${openFaq === i ? 'rotate-180' : ''}`} />
               </button>
               {openFaq === i && (
-                <div className="p-5 pt-0 text-gray-600 leading-relaxed border-t border-orange-50/50 mt-2">
+                <div className="px-6 pb-6 text-gray-700 leading-relaxed font-medium">
                   {faq.a}
                 </div>
               )}
@@ -150,6 +128,7 @@ const AboutPage: React.FC = () => {
           ))}
         </div>
       </section>
+
       <NavBar />
     </div>
   );
