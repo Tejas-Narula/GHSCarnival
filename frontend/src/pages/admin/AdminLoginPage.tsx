@@ -1,41 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../supabaseClient';
-
-// Import Inter font in index.css or use this style:
-// @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+import { api } from '../../api/client';
 
 export default function AdminLoginPage() {
   const [isDark, setIsDark] = useState(true);
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) navigate('/admin', { replace: true });
-    };
-    checkSession();
+    // Check if already logged in (cookie-based)
+    api.admin.me()
+      .then(() => navigate('/ghs-control-panel-2026', { replace: true }))
+      .catch(() => {
+        // Not logged in, stay on login page
+      });
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
-      const internalEmail = `${username.trim().toLowerCase()}@ghs.local`;
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: internalEmail,
-        password: password,
-      });
-      if (error) throw error;
-      if (data.user) navigate('/admin', { replace: true });
+      const data = await api.admin.login(email, password);
+      
+      // Cookies are automatically set by the browser
+      // Store user info if needed
+      localStorage.setItem('admin_user', JSON.stringify(data.user));
+      
+      // Navigate to admin dashboard
+      navigate('/ghs-control-panel-2026', { replace: true });
     } catch (error: any) {
-      alert("Invalid Username or Password");
+      setError(error.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -69,13 +70,19 @@ export default function AdminLoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+          
           <div className="relative group">
             <input
-              type="text"
-              placeholder="Username"
+              type="email"
+              placeholder="Email Address"
               className={inputStyle}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>

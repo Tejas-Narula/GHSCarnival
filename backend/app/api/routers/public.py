@@ -117,16 +117,18 @@ async def live_stream(
                 )
                 
                 # Convert Prisma models to dict for JSON serialization
-                matches_data = [match.model_dump() for match in matches]
-                announcements_data = [ann.model_dump() for ann in announcements]
+                matches_data = [match.model_dump(mode='json') for match in matches]
+                announcements_data = [ann.model_dump(mode='json') for ann in announcements]
                 
-                # Prepare data payload
+                # Prepare data payload - separate live and upcoming matches
+                live_matches = [m for m in matches_data if m["status"] == "LIVE"]
+                upcoming_matches = [m for m in matches_data if m["status"] == "UPCOMING"]
+                
                 data = {
-                    "matches": matches_data,
+                    "live": live_matches[0] if live_matches else None,
+                    "upcoming": upcoming_matches,
                     "announcements": announcements_data,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "live_count": sum(1 for m in matches if m.status == "LIVE"),
-                    "upcoming_count": sum(1 for m in matches if m.status == "UPCOMING")
+                    "timestamp": datetime.utcnow().isoformat()
                 }
                 
                 # Send SSE event
@@ -180,7 +182,7 @@ async def live_stream_single_match(
                 # If match is completed, send final update and close
                 if match.status == "COMPLETED":
                     data = {
-                        "match": match.model_dump(),
+                        "match": match.model_dump(mode='json'),
                         "timestamp": datetime.utcnow().isoformat(),
                         "final": True
                     }
@@ -189,7 +191,7 @@ async def live_stream_single_match(
                 
                 # Send current match data
                 data = {
-                    "match": match.model_dump(),
+                    "match": match.model_dump(mode='json'),
                     "timestamp": datetime.utcnow().isoformat(),
                     "final": False
                 }

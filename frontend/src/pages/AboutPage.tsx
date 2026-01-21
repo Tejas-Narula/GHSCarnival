@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trophy, Users, Star, ChevronDown } from 'lucide-react';
-import NavBar from '../components/NavBar';
 
 const AboutPage: React.FC = () => {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -25,7 +24,7 @@ const AboutPage: React.FC = () => {
   }, [nextSlide]);
 
   return (
-    <div className="min-h-screen text-gray-800 font-sans pb-20 relative">
+    <div className="min-h-screen text-gray-800 font-sans relative">
       
       {/* BACKGROUND LAYER - No Blur */}
       <div 
@@ -132,8 +131,6 @@ const AboutPage: React.FC = () => {
           ))}
         </div>
       </section>
-
-      <NavBar />
     </div>
   );
 };

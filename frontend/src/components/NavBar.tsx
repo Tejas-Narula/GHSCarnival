@@ -12,6 +12,7 @@ import {
 const NavBar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isLandingPage = location.pathname === "/";
 
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] bg-white border-t py-[10px] z-50">
@@ -34,12 +35,14 @@ const NavBar: React.FC = () => {
           active={location.pathname === "/hostel-blocks"}
           onClick={() => navigate("/hostel-blocks")}
         />
-        <NavItem
-          icon={<FaChartBar />}
-          label="Live Scores"
-          active={location.pathname === "/live-scores"}
-          onClick={() => navigate("/live-scores")}
-        />
+        {!isLandingPage && (
+          <NavItem
+            icon={<FaChartBar />}
+            label="Live Scores"
+            active={location.pathname === "/live-scores"}
+            onClick={() => navigate("/live-scores")}
+          />
+        )}
         <NavItem
           icon={<FaFileAlt />}
           label="Guidelines"

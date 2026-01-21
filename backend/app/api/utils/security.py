@@ -2,78 +2,103 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta
 from typing import Optional
 
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import bcrypt
+from fastapi import Depends, HTTPException, status, Request
 from dotenv import load_dotenv
 
 from app.db.prisma import prisma
 
 load_dotenv()
 
-# Use HTTPBearer for JWT tokens in Authorization header
-security = HTTPBearer(auto_error=False)
+# JWT configuration
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY is not set. Set it in backend/.env (generate with `openssl rand -hex 32`)."
+    )
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    # Convert to bytes if needed
+    if isinstance(plain_password, str):
+        plain_password = plain_password.encode('utf-8')
+    if isinstance(hashed_password, str):
+        hashed_password = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(plain_password, hashed_password)
 
 
-async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-):
-    """
-    Verify Supabase JWT token and return the user from database.
+def get_password_hash(password: str) -> str:
+    """Hash a password for storing."""
+    # Convert to bytes if needed
+    if isinstance(password, str):
+        password = password.encode('utf-8')
+    # Generate salt and hash
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password, salt)
+    return hashed.decode('utf-8')
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token."""
+    to_encode = data.copy()
     
-    For testing without Supabase, you can pass a user ID directly as the token.
-    In production, this validates the JWT signature.
-    """
-    if credentials is None:
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def decode_token(token: str) -> dict:
+    """Decode and verify a JWT token."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication token",
+            detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+async def get_current_user(request: Request):
+    """
+    Verify JWT token from cookie and return the user from database.
+    """
+    token = request.cookies.get("access_token")
     
-    token = credentials.credentials
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
     
-    # Try JWT verification first (production mode)
-    if SUPABASE_JWT_SECRET:
-        try:
-            # Decode and verify the JWT token
-            payload = jwt.decode(
-                token,
-                SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
-                audience="authenticated",
-            )
-            
-            # Extract user ID from Supabase JWT payload
-            user_id = payload.get("sub")
-            
-            if not user_id:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token payload",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        except jwt.InvalidTokenError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-    else:
-        # Development mode: treat token as user ID directly
-        # This allows testing with seeded admin IDs
-        user_id = token
+    # Decode token and extract user ID
+    payload = decode_token(token)
+    user_id: str = payload.get("sub")
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
     
     # Fetch user from database
     user = await prisma.user.find_unique(
@@ -85,7 +110,6 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     
     return user
@@ -119,3 +143,34 @@ async def get_current_super_admin(
             detail="Super admin privileges required"
         )
     return current_user
+
+
+def validate_csrf_token(request: Request) -> None:
+    """
+    Validate CSRF token for state-changing operations.
+    Token can be in X-CSRF-Token header or in cookie.
+    """
+    # Skip CSRF for GET, HEAD, OPTIONS
+    if request.method in ["GET", "HEAD", "OPTIONS"]:
+        return
+    
+    csrf_from_header = request.headers.get("X-CSRF-Token")
+    csrf_from_cookie = request.cookies.get("csrf_token")
+    
+    if not csrf_from_cookie:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF token missing"
+        )
+    
+    if not csrf_from_header:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF token not provided in header"
+        )
+    
+    if csrf_from_header != csrf_from_cookie:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF token mismatch"
+        )

@@ -1,262 +1,211 @@
-import { useMemo, useState } from 'react'
-import NavBar from '../components/NavBar'
+import { useState, useEffect } from "react";
+import { ScoreDisplay } from "../components/ScoreDisplay";
+import { api, Sport, Match } from "../api/client";
 
-type SportKey = 'box-cricket' | 'futsal' | 'basketball' | 'volleyball' | 'table-tennis'
-
-type UpcomingMatch = {
-  label: string
-  timeLabel: string
-}
-
-type LiveMatch = {
-  label: string
-  left: { score: string; detail: string }
-  right: { score: string; detail: string }
-}
-
-type SportViewModel = {
-  key: SportKey
-  name: string
-  icon: string
-  live: LiveMatch
-  upcoming: UpcomingMatch[]
-}
+const SPORT_ICONS: Record<string, string> = {
+  'box-cricket': '🏏',
+  'boxcricket': '🏏',
+  'futsal': '⚽',
+  'basketball': '🏀',
+  'volleyball': '🏐',
+  'table-tennis': '🏓',
+  'tabletennis': '🏓',
+  'power-lifting': '🏋️',
+  'powerlifting': '🏋️',
+  'pool': '🎱',
+  'badminton': '🏸',
+  'squash': '🎾',
+  'tug-of-war': '🪢',
+  'tugofwar': '🪢',
+  'chess': '♟️'
+};
 
 export default function LiveScoresPage() {
-  const sports: SportViewModel[] = useMemo(
-    () => [
-      {
-        key: 'box-cricket',
-        name: 'Box Cricket',
-        icon: '🏏',
-        live: {
-          label: 'B2 v/s B4',
-          left: { score: '127/9', detail: '60 balls' },
-          right: { score: '24/2', detail: '17 balls' }
-        },
-        upcoming: [
-          { label: 'B4 v/s B10', timeLabel: '6 pm, 28 Feb' },
-          { label: 'B8 v/s B5', timeLabel: '6 pm, 28 Feb' }
-        ]
-      },
-      {
-        key: 'futsal',
-        name: 'Futsal',
-        icon: '⚽',
-        live: {
-          label: 'B1 v/s B3',
-          left: { score: '2', detail: 'FT' },
-          right: { score: '1', detail: 'FT' }
-        },
-        upcoming: [
-          { label: 'B2 v/s B4', timeLabel: '5 pm, 28 Feb' },
-          { label: 'B6 v/s B9', timeLabel: '7 pm, 28 Feb' }
-        ]
-      },
-      {
-        key: 'basketball',
-        name: 'Basketball',
-        icon: '🏀',
-        live: {
-          label: 'B2 v/s B7',
-          left: { score: '48', detail: 'Q3' },
-          right: { score: '41', detail: 'Q3' }
-        },
-        upcoming: [
-          { label: 'B4 v/s B8', timeLabel: '6 pm, 28 Feb' },
-          { label: 'B1 v/s B5', timeLabel: '7 pm, 28 Feb' }
-        ]
-      },
-      {
-        key: 'volleyball',
-        name: 'Volleyball',
-        icon: '🏐',
-        live: {
-          label: 'B3 v/s B6',
-          left: { score: '1', detail: 'Sets' },
-          right: { score: '0', detail: 'Sets' }
-        },
-        upcoming: [
-          { label: 'B2 v/s B5', timeLabel: '6 pm, 28 Feb' },
-          { label: 'B7 v/s B10', timeLabel: '7 pm, 28 Feb' }
-        ]
-      },
-      {
-        key: 'table-tennis',
-        name: 'Table Tennis',
-        icon: '🏓',
-        live: {
-          label: 'B8 v/s B9',
-          left: { score: '10', detail: 'Game 2' },
-          right: { score: '7', detail: 'Game 2' }
-        },
-        upcoming: [
-          { label: 'B1 v/s B4', timeLabel: '6 pm, 28 Feb' },
-          { label: 'B2 v/s B6', timeLabel: '7 pm, 28 Feb' }
-        ]
-      }
-    ],
-    []
-  )
+  const [sports, setSports] = useState<Sport[]>([]);
+  const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [liveMatch, setLiveMatch] = useState<Match | null>(null);
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [activeSportKey, setActiveSportKey] = useState<SportKey>('box-cricket')
-  const activeSport = sports.find((s) => s.key === activeSportKey) ?? sports[0]
+  useEffect(() => {
+    loadSports();
+  }, []);
+
+  useEffect(() => {
+    if (selectedSport) {
+      loadMatches(selectedSport);
+      
+      // Connect to SSE stream for live updates
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const eventSource = new EventSource(`${apiBase}/public/live-stream?sport_slug=${selectedSport}&interval=5`);
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.live) {
+            setLiveMatch(data.live);
+          } else {
+            setLiveMatch(null);
+          }
+          
+          if (data.upcoming) {
+            setUpcomingMatches(data.upcoming.slice(0, 6));
+          }
+        } catch (err) {
+          console.error('Failed to parse SSE data:', err);
+        }
+      };
+      
+      eventSource.onerror = (err) => {
+        console.error('SSE connection error:', err);
+        eventSource.close();
+      };
+      
+      // Cleanup: close connection when sport changes or component unmounts
+      return () => {
+        eventSource.close();
+      };
+    }
+  }, [selectedSport]);
+
+  async function loadSports() {
+    try {
+      const { items } = await api.getSports();
+      setSports(items);
+      if (items.length > 0 && !selectedSport) {
+        setSelectedSport(items[0].slug);
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load sports:', err);
+      setError('Failed to load sports');
+      setLoading(false);
+    }
+  }
+
+  async function loadMatches(sportSlug: string) {
+    try {
+      const { items: allMatches } = await api.getMatches({ 
+        sport_slug: sportSlug,
+        limit: 50
+      });
+
+      const live = allMatches.find(m => m.status === 'LIVE');
+      const upcoming = allMatches.filter(m => m.status === 'UPCOMING').slice(0, 6);
+
+      setLiveMatch(live || null);
+      setUpcomingMatches(upcoming);
+    } catch (err) {
+      console.error('Failed to load matches:', err);
+      setError('Failed to load matches');
+    }
+  }
+
+  const currentSport = sports.find(s => s.slug === selectedSport);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[url('/Background.png')] bg-center bg-cover bg-no-repeat bg-fixed bg-white font-[system-ui,sans-serif]">
+        <div className="max-w-[920px] mx-auto">
+          <header className="pt-5 px-20 pb-2">
+            <img src="/ghs_carnival_logo.png" alt="GHS Carnival" className="max-w-[280px] block" />
+          </header>
+          <div className="p-4 text-center text-gray-500">Loading sports data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || sports.length === 0) {
+    return (
+      <div className="min-h-screen bg-[url('/Background.png')] bg-center bg-cover bg-no-repeat bg-fixed bg-white font-[system-ui,sans-serif]">
+        <div className="max-w-[920px] mx-auto">
+          <header className="pt-5 px-20 pb-2">
+            <img src="/ghs_carnival_logo.png" alt="GHS Carnival" className="max-w-[280px] block" />
+          </header>
+          <div className="p-4 text-center">
+            <p className="text-red-500 mb-4">{error || 'No sports available yet'}</p>
+            <p className="text-sm text-gray-500">Please check back later or contact the admin.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div data-page="live-scores" className="min-h-[100svh] overflow-x-hidden bg-amber-50">
-      <header className="sticky top-0 z-10 bg-amber-50/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto max-w-md px-4 pt-4">
-          <h1 className="text-center text-2xl font-semibold tracking-wide text-stone-800">
-            GHS CARNIVAL
-          </h1>
+    <div className="min-h-screen bg-[url('/Background.png')] bg-center bg-cover bg-no-repeat bg-fixed bg-white font-[system-ui,sans-serif]">
+      <div className="max-w-[920px] mx-auto">
+        <header className="pt-5 px-20 pb-2">
+          <img src="/ghs_carnival_logo.png" alt="GHS Carnival" className="max-w-[280px] block" />
+        </header>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-3 px-4 mt-1 max-[420px]:grid-cols-3 max-[420px]:gap-2 min-[1280px]:grid-cols-[repeat(6,minmax(110px,1fr))] min-[1280px]:gap-[14px]">
+          {sports.map((s) => (
+            <button
+              key={s.slug}
+              className={`flex flex-col items-center gap-1.5 bg-white rounded-[14px] py-3 px-2 text-xs font-semibold cursor-pointer border transition-[0.2s_ease] shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-[420px]:py-2.5 max-[420px]:px-1.5 max-[420px]:rounded-xl ${
+                selectedSport === s.slug 
+                  ? 'bg-gradient-to-br from-rose-50 via-orange-50/50 to-orange-50 border-rose-200 shadow-[0_0_0_3px_rgba(254,205,211,0.55)]' 
+                  : 'border-gray-200'
+              }`}
+              onClick={() => setSelectedSport(s.slug)}
+              aria-pressed={selectedSport === s.slug}
+            >
+              <span className="text-lg">{SPORT_ICONS[s.slug] || '🏆'}</span>
+              <span>{s.name}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="mx-auto max-w-md px-0 pb-2 pt-3">
-          <div className="bg-gradient-to-b from-amber-50 to-amber-100/60">
-            <div className="flex gap-2.5 overflow-x-auto overscroll-x-contain px-4 py-2.5 snap-x snap-mandatory">
-            {sports.map((sport) => {
-              const isActive = sport.key === activeSportKey
-              return (
-                <button
-                  key={sport.key}
-                  type="button"
-                  onClick={() => setActiveSportKey(sport.key)}
-                  className={
-                    'shrink-0 snap-start rounded-xl px-1 py-1 transition outline-none focus:outline-none focus-visible:outline-none ' +
-                    (isActive
-                      ? 'bg-white/70'
-                      : 'bg-transparent hover:bg-white/50')
-                  }
-                  aria-pressed={isActive}
-                >
-                  <div className="flex w-16 flex-col items-center">
-                    <div
-                      className={
-                        'flex h-11 w-11 items-center justify-center rounded-full ' +
-                        (isActive
-                          ? 'bg-white'
-                          : 'bg-amber-50')
-                      }
-                      aria-hidden="true"
-                    >
-                      <span className="text-xl leading-none">{sport.icon}</span>
-                    </div>
-                    <div className="mt-1.5 text-center text-[11px] font-semibold leading-tight text-stone-900">
-                      {sport.name}
-                    </div>
-                    <div className="mt-1.5 h-1 w-8 rounded-full bg-transparent">
-                      <div
-                        className={
-                          'h-full w-full rounded-full ' +
-                          (isActive ? 'bg-stone-900/70' : 'bg-transparent')
-                        }
-                      />
-                    </div>
+        <main className="p-4 min-[900px]:max-w-[560px] min-[900px]:mx-auto min-[1280px]:max-w-[680px]">
+          {liveMatch ? (
+            <>
+              <h2 className="text-xs uppercase tracking-wider text-gray-500 mt-[22px] mb-2.5">
+                NOW PLAYING: {currentSport?.name.toUpperCase()}
+              </h2>
+
+              <section className="bg-gradient-to-br from-rose-100/50 via-white to-orange-100 rounded-[18px] p-3.5 border border-rose-200 shadow-[0_6px_18px_rgba(255,192,186,0.35)_inset]">
+                <div className="flex items-center gap-2 text-[13px]">
+                  <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+                  Now Playing: {liveMatch.teamA} v/s {liveMatch.teamB}
+                </div>
+
+                <ScoreDisplay match={liveMatch} sportSlug={selectedSport || ''} variant="live" />
+
+                {liveMatch.venue && (
+                  <div className="text-xs text-gray-500 mt-2">📍 Venue: {liveMatch.venue}</div>
+                )}
+              </section>
+            </>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-lg mb-2">No live matches at the moment</p>
+              <p className="text-sm">Check upcoming matches below</p>
+            </div>
+          )}
+
+          {upcomingMatches.length > 0 && (
+            <>
+              <h2 className="text-xs uppercase tracking-wider text-gray-500 mt-[22px] mb-2.5">UP NEXT</h2>
+
+              <section className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
+                {upcomingMatches.map((match) => (
+                  <div key={match.id} className="bg-white py-2.5 px-3 rounded-xl text-xs border border-[#eef2f7] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                    <strong>
+                      {match.startTime 
+                        ? new Date(match.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                        : 'TBA'}
+                    </strong>
+                    <span className="block">{match.teamA} v/s {match.teamB}</span>
+                    {match.venue && <span className="block text-gray-400 mt-1">{match.venue}</span>}
                   </div>
-                </button>
-              )
-            })}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-md px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-        <section className="rounded-2xl border border-amber-200 bg-white p-3 shadow-sm">
-          <h2 className="text-center text-2xl font-bold text-stone-900">{activeSport.name}</h2>
-
-          <div className="mt-3 rounded-2xl border border-amber-300 bg-gradient-to-b from-amber-100 to-orange-200 p-3 shadow">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold text-stone-900">
-                Now Playing : <span className="font-bold">{activeSport.live.label}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500" aria-hidden="true" />
-                <span className="sr-only">Live</span>
-              </div>
-            </div>
-
-            <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center">
-              <div className="text-center">
-                <div className="text-3xl font-extrabold leading-none tracking-tight text-stone-950">
-                  {activeSport.live.left.score}
-                </div>
-                <div className="mt-1.5 text-xs font-semibold text-stone-800">
-                  {activeSport.live.left.detail}
-                </div>
-              </div>
-
-              <div className="flex justify-center" aria-hidden="true">
-                <div className="h-14 w-px bg-stone-700/40" />
-              </div>
-
-              <div className="text-center">
-                <div className="text-3xl font-extrabold leading-none tracking-tight text-stone-950">
-                  {activeSport.live.right.score}
-                </div>
-                <div className="mt-1.5 text-xs font-semibold text-stone-800">
-                  {activeSport.live.right.detail}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <h3 className="mt-4 text-xl font-extrabold text-stone-900">Up Next</h3>
-          <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-            {activeSport.upcoming.slice(0, 2).map((m) => (
-              <div
-                key={m.label}
-                className="rounded-2xl border border-amber-300 bg-amber-50 p-2.5 text-center shadow"
-              >
-                <div className="text-base font-extrabold leading-tight text-stone-950">{m.label}</div>
-                <div className="mt-1 text-xs font-semibold text-stone-700">{m.timeLabel}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-2xl border border-amber-200 bg-white p-3 shadow-sm">
-          <h3 className="text-xl font-extrabold text-stone-900">Quick Links</h3>
-
-          <div className="mt-3 space-y-1">
-            <a
-              href="#"
-              className="-mx-2 flex min-h-10 items-center gap-2.5 px-2 py-1.5 text-stone-900"
-              aria-label="GHS Carnival's Official Page"
-            >
-              <span className="text-xl" aria-hidden="true">
-                📷
-              </span>
-              <span className="text-base font-bold underline underline-offset-4">
-                GHS CARNIVAL&apos;S Official Page
-              </span>
-            </a>
-
-            <a href="/guidelines" className="-mx-2 flex min-h-10 items-center gap-2.5 px-2 py-1.5 text-stone-900">
-              <span className="text-xl" aria-hidden="true">
-                🌐
-              </span>
-              <span className="text-base font-bold underline underline-offset-4">
-                Guidelines / Rulebook
-              </span>
-            </a>
-
-            <a
-              href="#"
-              className="-mx-2 flex min-h-10 items-center gap-2.5 px-2 py-1.5 text-stone-900"
-              aria-label="Cultural Events Updates"
-            >
-              <span className="text-xl" aria-hidden="true">
-                🕒
-              </span>
-              <span className="text-base font-bold underline underline-offset-4">
-                Cultural Events Updates
-              </span>
-            </a>
-          </div>
-        </section>
-      </main>
-      <NavBar />
+                ))}
+              </section>
+            </>
+          )}
+        </main>
+      </div>
     </div>
-  )
+  );
 }
