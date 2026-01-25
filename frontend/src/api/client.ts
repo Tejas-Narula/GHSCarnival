@@ -142,6 +142,16 @@ export const api = {
     
     logout: () => 
       fetchAPI<{ message: string }>('/auth/logout', { method: 'POST' }),
+    
+    updateProfile: (email?: string, password?: string, currentPassword?: string) =>
+      fetchAPI<{ message: string; user: any }>('/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          email: email || undefined,
+          password: password || undefined,
+          current_password: currentPassword
+        })
+      }),
 
     // Match Management
     createMatch: (data: { sportSlug: string; teamA: string; teamB: string; status?: string; startTime?: string; venue?: string; score?: any }) =>

@@ -7,13 +7,14 @@ import time
 from typing import Dict, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from app.db.prisma import prisma
 from app.api.utils.security import (
     get_current_user,
     verify_password,
-    create_access_token
+    create_access_token,
+    get_password_hash
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -42,8 +43,14 @@ def _client_ip(request: Request) -> str:
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+
+
+class UpdateProfileRequest(BaseModel):
+    email: str | None = None
+    password: str | None = None
+    current_password: str  # Required to verify identity before changing password
 
 
 class LoginResponse(BaseModel):
@@ -201,3 +208,74 @@ async def logout(response: Response) -> dict:
     response.delete_cookie(key="access_token", path="/")
     response.delete_cookie(key="csrf_token", path="/")
     return {"message": "Logged out successfully"}
+
+
+@router.patch("/profile")
+async def update_profile(
+    data: UpdateProfileRequest,
+    current_user=Depends(get_current_user)
+) -> dict:
+    """
+    Update current user's email and/or password.
+    Requires current password for verification.
+    """
+    # Verify current password
+    if not verify_password(data.current_password, current_user.passwordHash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+    
+    # Prepare update data
+    update_data = {}
+    
+    # Update email if provided
+    if data.email:
+        # Check if email is already taken
+        existing_user = await prisma.user.find_unique(
+            where={"email": data.email}
+        )
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use",
+            )
+        update_data["email"] = data.email
+    
+    # Update password if provided
+    if data.password:
+        update_data["passwordHash"] = get_password_hash(data.password)
+    
+    # Update user
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No changes provided",
+        )
+    
+    updated_user = await prisma.user.update(
+        where={"id": current_user.id},
+        data=update_data,
+        include={"sport": True}
+    )
+    
+    user_data = {
+        "id": updated_user.id,
+        "email": updated_user.email,
+        "username": updated_user.username,
+        "role": updated_user.role,
+        "sportId": updated_user.sportId,
+    }
+    
+    if updated_user.sport:
+        user_data["sport"] = {
+            "id": updated_user.sport.id,
+            "name": updated_user.sport.name,
+            "slug": updated_user.sport.slug,
+        }
+    
+    return {
+        "message": "Profile updated successfully",
+        "user": user_data
+    }
+

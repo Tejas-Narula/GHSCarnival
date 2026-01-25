@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Menu, Trash2, X, PlusCircle, MinusCircle } from 'lucide-react';
 import { api, Match } from '../../api/client';
+import ProfileSettings from '../../components/ProfileSettings';
 
 interface AdminUser {
   id: string;
@@ -27,7 +28,7 @@ export default function AdminDashboard() {
   const [isDark, setIsDark] = useState(true);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<AdminUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'manage' | 'create' | 'users'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'create' | 'users' | 'profile'>('manage');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [matches, setMatches] = useState<Match[]>([]);
@@ -292,6 +293,7 @@ export default function AdminDashboard() {
           {userProfile?.role === 'SUPER_ADMIN' && (
             <TabBtn label="Manage Users" active={activeTab === 'users'} onClick={() => { setActiveTab('users'); setIsMenuOpen(false); loadUsers(); }} theme={theme} />
           )}
+          <TabBtn label="Profile Settings" active={activeTab === 'profile'} onClick={() => { setActiveTab('profile'); setIsMenuOpen(false); }} theme={theme} />
         </nav>
 
         <button 
@@ -525,6 +527,15 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+            )}
+
+            {activeTab === 'profile' && (
+              <ProfileSettings
+                user={userProfile}
+                isDark={isDark}
+                onLogout={handleLogout}
+                onProfileUpdate={(updatedUser) => setUserProfile(updatedUser)}
+              />
             )}
 
           </div>
