@@ -15,8 +15,8 @@ const NavBar: React.FC = () => {
   const isLandingPage = location.pathname === "/";
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-[390px] bg-white border-t py-[10px] z-50">
-      <div className="flex justify-around text-[11px] text-gray-500">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-screen bg-white border-t py-[10px] md:py-[16px] lg:py-[20px] z-50">
+      <div className="flex justify-around text-[11px] md:text-[12px] lg:text-[14px] text-gray-500 px-[20px] md:px-[40px] lg:px-[80px] xl:px-[120px]">
         <NavItem
           icon={<FaHome />}
           label="Home"
@@ -35,14 +35,12 @@ const NavBar: React.FC = () => {
           active={location.pathname === "/hostel-blocks"}
           onClick={() => navigate("/hostel-blocks")}
         />
-        {!isLandingPage && (
-          <NavItem
-            icon={<FaChartBar />}
-            label="Live Scores"
-            active={location.pathname === "/live-scores"}
-            onClick={() => navigate("/live-scores")}
-          />
-        )}
+        <NavItem
+          icon={<FaChartBar />}
+          label="Live Scores"
+          active={location.pathname === "/live-scores"}
+          onClick={() => navigate("/live-scores")}
+        />
         <NavItem
           icon={<FaFileAlt />}
           label="Guidelines"
@@ -77,8 +75,8 @@ const NavItem = ({
       active ? "text-[#FF8736]" : "text-gray-500 hover:text-[#FF8736]"
     }`}
   >
-    <div className="text-[18px]">{icon}</div>
-    {label}
+    <div className="text-[18px] md:text-[22px] lg:text-[26px]">{icon}</div>
+    <span className="mt-[2px] md:mt-[4px]">{label}</span>
   </div>
 );
 
