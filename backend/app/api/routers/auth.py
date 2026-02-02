@@ -119,8 +119,8 @@ async def login(credentials: LoginRequest, request: Request, response: Response)
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # Set to True in production with HTTPS
-        samesite="lax",
+        secure=True,  # Required for cross-origin cookies
+        samesite="none",  # Allow cross-origin cookies
         max_age=60 * 60 * 24 * 7,  # 7 days
         path="/"
     )
@@ -130,8 +130,8 @@ async def login(credentials: LoginRequest, request: Request, response: Response)
         key="csrf_token",
         value=csrf_token,
         httponly=False,  # Frontend needs to read this
-        secure=False,  # Set to True in production with HTTPS
-        samesite="lax",
+        secure=True,  # Required for cross-origin cookies
+        samesite="none",  # Allow cross-origin cookies
         max_age=60 * 60 * 24 * 7,  # 7 days
         path="/"
     )
@@ -205,8 +205,8 @@ async def logout(response: Response) -> dict:
     """
     Logout by clearing authentication cookies.
     """
-    response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="csrf_token", path="/")
+    response.delete_cookie(key="access_token", path="/", secure=True, samesite="none")
+    response.delete_cookie(key="csrf_token", path="/", secure=True, samesite="none")
     return {"message": "Logged out successfully"}
 
 
