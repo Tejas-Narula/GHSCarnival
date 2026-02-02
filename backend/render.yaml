@@ -8,6 +8,7 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt && prisma py fetch && prisma generate && bash copy_binaries.sh && prisma db push --accept-data-loss --skip-generate
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.4

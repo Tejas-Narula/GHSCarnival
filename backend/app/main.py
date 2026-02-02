@@ -72,4 +72,10 @@ async def on_shutdown() -> None:
     scheduler.shutdown()
 
 
+@app.get("/")
+async def root():
+    """Root endpoint redirect"""
+    return {"message": "GHS Carnival API", "docs": "/docs", "health": "/api/health"}
+
+
 app.include_router(api_router, prefix="/api")
