@@ -285,9 +285,86 @@ async def delete_announcement(
 
 
 # User Management (SUPER_ADMIN only)
+class CreateUserBody(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str  # SUPER_ADMIN or SPORT_ADMIN
+    sportId: str | None = None  # Required if role is SPORT_ADMIN
+
+
 class UpdateUserBody(BaseModel):
     email: str | None = None
     password: str | None = None
+
+
+@router.post("/users")
+async def create_user(
+    body: CreateUserBody,
+    current_admin=Depends(get_current_super_admin),
+    _csrf: None = Depends(validate_csrf_token)
+) -> dict:
+    """Create a new admin user (SUPER_ADMIN only)"""
+    from app.api.utils.security import get_password_hash
+    
+    # Validate role
+    if body.role not in ["SUPER_ADMIN", "SPORT_ADMIN"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Role must be either SUPER_ADMIN or SPORT_ADMIN"
+        )
+    
+    # Validate sportId is provided for SPORT_ADMIN
+    if body.role == "SPORT_ADMIN" and not body.sportId:
+        raise HTTPException(
+            status_code=400,
+            detail="sportId is required for SPORT_ADMIN role"
+        )
+    
+    # Check if email already exists
+    existing_email = await prisma.user.find_unique(where={"email": body.email})
+    if existing_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already in use"
+        )
+    
+    # Check if username already exists
+    existing_username = await prisma.user.find_unique(where={"username": body.username})
+    if existing_username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already in use"
+        )
+    
+    # Validate sport exists if sportId provided
+    if body.sportId:
+        sport = await prisma.sport.find_unique(where={"id": body.sportId})
+        if not sport:
+            raise HTTPException(
+                status_code=404,
+                detail="Sport not found"
+            )
+    
+    # Create the user
+    import secrets
+    new_user = await prisma.user.create(
+        data={
+            "id": secrets.token_urlsafe(16),
+            "username": body.username,
+            "email": body.email,
+            "passwordHash": get_password_hash(body.password),
+            "role": body.role,
+            "sportId": body.sportId
+        },
+        include={"sport": True}
+    )
+    
+    # Return without password hash
+    user_dict = new_user.model_dump(mode='json')
+    user_dict.pop('passwordHash', None)
+    
+    return {"item": user_dict}
 
 
 @router.get("/users")

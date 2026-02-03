@@ -46,6 +46,14 @@ export default function AdminDashboard() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userEditForm, setUserEditForm] = useState({ email: '', password: '' });
+  const [showCreateUserForm, setShowCreateUserForm] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({ 
+    username: '', 
+    email: '', 
+    password: '', 
+    role: 'SPORT_ADMIN',
+    sportId: ''
+  });
 
   const theme = {
     bg: isDark ? 'bg-slate-950' : 'bg-slate-50',
@@ -265,6 +273,52 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      
+      // Validate required fields
+      if (!createUserForm.username || !createUserForm.email || !createUserForm.password) {
+        setError('Please fill in all required fields');
+        return;
+      }
+      
+      // Validate sportId for SPORT_ADMIN
+      if (createUserForm.role === 'SPORT_ADMIN' && !createUserForm.sportId) {
+        setError('Please select a sport for Sport Admin role');
+        return;
+      }
+      
+      const userData: any = {
+        username: createUserForm.username,
+        email: createUserForm.email,
+        password: createUserForm.password,
+        role: createUserForm.role
+      };
+      
+      if (createUserForm.role === 'SPORT_ADMIN') {
+        userData.sportId = createUserForm.sportId;
+      }
+      
+      await api.admin.createUser(userData);
+      await loadUsers(); // Reload users
+      
+      // Reset form and hide it
+      setCreateUserForm({ 
+        username: '', 
+        email: '', 
+        password: '', 
+        role: 'SPORT_ADMIN',
+        sportId: ''
+      });
+      setShowCreateUserForm(false);
+    } catch (err: any) {
+      console.error('Failed to create user:', err);
+      setError(err.message || 'Failed to create user');
+    }
+  };
+
   if (loading) return <div className={`h-screen w-screen flex items-center justify-center ${theme.bg}`}><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-500"></div></div>;
 
   return (
@@ -447,7 +501,93 @@ export default function AdminDashboard() {
 
             {activeTab === 'users' && userProfile?.role === 'SUPER_ADMIN' && (
               <div className="grid gap-4">
-                <h2 className="text-xl font-bold">User Management</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold">User Management</h2>
+                  <button
+                    onClick={() => setShowCreateUserForm(!showCreateUserForm)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+                      showCreateUserForm ? theme.buttonSecondary : theme.buttonPrimary
+                    }`}
+                  >
+                    {showCreateUserForm ? 'Cancel' : '+ Create User'}
+                  </button>
+                </div>
+                
+                {/* Create User Form */}
+                {showCreateUserForm && (
+                  <div className={`p-6 rounded-[22px] border ${theme.card}`}>
+                    <h3 className="font-bold text-lg mb-4">Create New Admin User</h3>
+                    <form onSubmit={handleCreateUser} className="space-y-4">
+                      <div>
+                        <label className={`block text-[10px] font-bold uppercase mb-1 ${theme.subtext}`}>Username *</label>
+                        <input
+                          type="text"
+                          placeholder="Enter username"
+                          className={`w-full px-4 py-3 rounded-xl text-sm ${theme.input}`}
+                          value={createUserForm.username}
+                          onChange={e => setCreateUserForm({ ...createUserForm, username: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-[10px] font-bold uppercase mb-1 ${theme.subtext}`}>Email *</label>
+                        <input
+                          type="email"
+                          placeholder="Enter email"
+                          className={`w-full px-4 py-3 rounded-xl text-sm ${theme.input}`}
+                          value={createUserForm.email}
+                          onChange={e => setCreateUserForm({ ...createUserForm, email: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-[10px] font-bold uppercase mb-1 ${theme.subtext}`}>Password *</label>
+                        <input
+                          type="password"
+                          placeholder="Enter password"
+                          className={`w-full px-4 py-3 rounded-xl text-sm ${theme.input}`}
+                          value={createUserForm.password}
+                          onChange={e => setCreateUserForm({ ...createUserForm, password: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-[10px] font-bold uppercase mb-1 ${theme.subtext}`}>Role *</label>
+                        <select
+                          className={`w-full px-4 py-3 rounded-xl text-sm ${theme.input}`}
+                          value={createUserForm.role}
+                          onChange={e => setCreateUserForm({ ...createUserForm, role: e.target.value, sportId: e.target.value === 'SUPER_ADMIN' ? '' : createUserForm.sportId })}
+                          required
+                        >
+                          <option value="SPORT_ADMIN">Sport Admin</option>
+                          <option value="SUPER_ADMIN">Super Admin</option>
+                        </select>
+                      </div>
+                      {createUserForm.role === 'SPORT_ADMIN' && (
+                        <div>
+                          <label className={`block text-[10px] font-bold uppercase mb-1 ${theme.subtext}`}>Sport *</label>
+                          <select
+                            className={`w-full px-4 py-3 rounded-xl text-sm ${theme.input}`}
+                            value={createUserForm.sportId}
+                            onChange={e => setCreateUserForm({ ...createUserForm, sportId: e.target.value })}
+                            required
+                          >
+                            <option value="">-- Select a Sport --</option>
+                            {sports.map(sport => (
+                              <option key={sport.id} value={sport.id}>{sport.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <button
+                        type="submit"
+                        className={`w-full px-4 py-3 rounded-xl text-[10px] font-bold uppercase transition-all ${theme.buttonPrimary}`}
+                      >
+                        Create User
+                      </button>
+                    </form>
+                  </div>
+                )}
                 
                 {loadingUsers ? (
                   <div className="flex justify-center py-10">

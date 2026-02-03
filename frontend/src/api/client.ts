@@ -214,6 +214,12 @@ export const api = {
     getUsers: () =>
       fetchAPI<{ items: any[] }>('/admin/users'),
 
+    createUser: (data: { username: string; email: string; password: string; role: string; sportId?: string }) =>
+      fetchAPI<{ item: any }>('/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+
     updateUser: (userId: string, data: { email?: string; password?: string }) =>
       fetchAPI<{ item: any }>(`/admin/users/${userId}`, {
         method: 'PATCH',
