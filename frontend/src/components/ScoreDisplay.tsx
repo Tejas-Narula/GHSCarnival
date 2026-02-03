@@ -3,7 +3,7 @@ import { Match } from '../api/client';
 interface ScoreDisplayProps {
   match: Match;
   sportSlug: string;
-  variant?: 'live' | 'compact';
+  variant?: 'live' | 'compact' | 'completed';
 }
 
 export function ScoreDisplay({ match, sportSlug, variant = 'live' }: ScoreDisplayProps) {

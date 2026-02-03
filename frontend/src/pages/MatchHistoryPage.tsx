@@ -21,12 +21,11 @@ const SPORT_ICONS: Record<string, string> = {
   'chess': '♟️'
 };
 
-export default function LiveScoresPage() {
+export default function MatchHistoryPage() {
   const navigate = useNavigate();
   const [sports, setSports] = useState<Sport[]>([]);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
-  const [liveMatch, setLiveMatch] = useState<Match | null>(null);
-  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
+  const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,39 +35,7 @@ export default function LiveScoresPage() {
 
   useEffect(() => {
     if (selectedSport) {
-      loadMatches(selectedSport);
-      
-      // Connect to SSE stream for live updates
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const eventSource = new EventSource(`${apiBase}/public/live-stream?sport_slug=${selectedSport}&interval=5`);
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.live) {
-            setLiveMatch(data.live);
-          } else {
-            setLiveMatch(null);
-          }
-          
-          if (data.upcoming) {
-            setUpcomingMatches(data.upcoming.slice(0, 6));
-          }
-        } catch (err) {
-          console.error('Failed to parse SSE data:', err);
-        }
-      };
-      
-      eventSource.onerror = (err) => {
-        console.error('SSE connection error:', err);
-        eventSource.close();
-      };
-      
-      // Cleanup: close connection when sport changes or component unmounts
-      return () => {
-        eventSource.close();
-      };
+      loadCompletedMatches(selectedSport);
     }
   }, [selectedSport]);
 
@@ -87,21 +54,19 @@ export default function LiveScoresPage() {
     }
   }
 
-  async function loadMatches(sportSlug: string) {
+  async function loadCompletedMatches(sportSlug: string) {
     try {
-      const { items: allMatches } = await api.getMatches({ 
+      setError(null);
+      const { items } = await api.getMatches({ 
         sport_slug: sportSlug,
-        limit: 50
+        status: 'COMPLETED',
+        limit: 100
       });
 
-      const live = allMatches.find(m => m.status === 'LIVE');
-      const upcoming = allMatches.filter(m => m.status === 'UPCOMING').slice(0, 6);
-
-      setLiveMatch(live || null);
-      setUpcomingMatches(upcoming);
+      setCompletedMatches(items);
     } catch (err) {
-      console.error('Failed to load matches:', err);
-      setError('Failed to load matches');
+      console.error('Failed to load match history:', err);
+      setError('Failed to load match history');
     }
   }
 
@@ -114,7 +79,7 @@ export default function LiveScoresPage() {
           <header className="pt-5 px-20 pb-2">
             <img src="/ghs_carnival_logo.png" alt="GHS Carnival" className="max-w-[280px] block" />
           </header>
-          <div className="p-4 text-center text-gray-500">Loading sports data...</div>
+          <div className="p-4 text-center text-gray-500">Loading match history...</div>
         </div>
       </div>
     );
@@ -139,15 +104,21 @@ export default function LiveScoresPage() {
   return (
     <div className="min-h-screen bg-[url('/Background.png')] bg-center bg-cover bg-no-repeat bg-fixed bg-white font-[system-ui,sans-serif]">
       <div className="max-w-[920px] mx-auto">
-        <header className="pt-5 px-4 md:px-20 pb-2 flex items-center justify-between flex-wrap gap-3">
+        <header className="pt-5 px-20 pb-2 flex items-center justify-between">
           <img src="/ghs_carnival_logo.png" alt="GHS Carnival" className="max-w-[280px] block" />
           <button
-            onClick={() => navigate('/match-history')}
+            onClick={() => navigate('/live-scores')}
             className="px-4 py-2 bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
           >
-            📜 View Match History
+            ← Back to Live Scores
           </button>
         </header>
+
+        <div className="px-4 mt-4">
+          <h1 className="text-2xl font-bold text-gray-800 mb-1">Match History</h1>
+          <p className="text-sm text-gray-500 mb-4">View all completed matches by sport</p>
+        </div>
+
         <div className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-3 px-4 mt-1 max-[420px]:grid-cols-3 max-[420px]:gap-2 min-[1280px]:grid-cols-[repeat(6,minmax(110px,1fr))] min-[1280px]:gap-[14px]">
           {sports.map((s) => (
             <button
@@ -166,51 +137,66 @@ export default function LiveScoresPage() {
           ))}
         </div>
 
-        <main className="p-4 min-[900px]:max-w-[560px] min-[900px]:mx-auto min-[1280px]:max-w-[680px]">
-          {liveMatch ? (
-            <>
-              <h2 className="text-xs uppercase tracking-wider text-gray-500 mt-[22px] mb-2.5">
-                NOW PLAYING: {currentSport?.name.toUpperCase()}
-              </h2>
+        <main className="p-4 min-[900px]:max-w-[720px] min-[900px]:mx-auto min-[1280px]:max-w-[840px]">
+          <h2 className="text-xs uppercase tracking-wider text-gray-500 mt-[22px] mb-2.5">
+            {currentSport?.name.toUpperCase()} - COMPLETED MATCHES
+          </h2>
 
-              <section className="bg-gradient-to-br from-rose-100/50 via-white to-orange-100 rounded-[18px] p-3.5 border border-rose-200 shadow-[0_6px_18px_rgba(255,192,186,0.35)_inset]">
-                <div className="flex items-center gap-2 text-[13px]">
-                  <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-                  Now Playing: {liveMatch.teamA} v/s {liveMatch.teamB}
-                </div>
-
-                <ScoreDisplay match={liveMatch} sportSlug={selectedSport || ''} variant="live" />
-
-                {liveMatch.venue && (
-                  <div className="text-xs text-gray-500 mt-2">📍 Venue: {liveMatch.venue}</div>
-                )}
-              </section>
-            </>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg mb-2">No live matches at the moment</p>
-              <p className="text-sm">Check upcoming matches below</p>
+          {completedMatches.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+              <div className="text-4xl mb-3">🏆</div>
+              <p className="text-lg text-gray-600 mb-2">No completed matches yet</p>
+              <p className="text-sm text-gray-400">Check back after matches are finished</p>
             </div>
-          )}
-
-          {upcomingMatches.length > 0 && (
-            <>
-              <h2 className="text-xs uppercase tracking-wider text-gray-500 mt-[22px] mb-2.5">UP NEXT</h2>
-
-              <section className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
-                {upcomingMatches.map((match) => (
-                  <div key={match.id} className="bg-white py-2.5 px-3 rounded-xl text-xs border border-[#eef2f7] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-                    <strong>
-                      {match.startTime 
-                        ? new Date(match.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-                        : 'TBA'}
-                    </strong>
-                    <span className="block">{match.teamA} v/s {match.teamB}</span>
-                    {match.venue && <span className="block text-gray-400 mt-1">{match.venue}</span>}
+          ) : (
+            <section className="space-y-3">
+              {completedMatches.map((match) => (
+                <div 
+                  key={match.id} 
+                  className="bg-white rounded-[18px] p-4 border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-base text-gray-800">
+                          {match.teamA} <span className="text-orange-500 font-normal">vs</span> {match.teamB}
+                        </h3>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-md text-[10px] font-bold uppercase">
+                          Completed
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        {match.startTime && (
+                          <>
+                            <span>📅 {new Date(match.startTime).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}</span>
+                            <span>•</span>
+                            <span>🕐 {new Date(match.startTime).toLocaleTimeString('en-US', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}</span>
+                          </>
+                        )}
+                        {match.venue && (
+                          <>
+                            <span>•</span>
+                            <span>📍 {match.venue}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </section>
-            </>
+
+                  <div className="bg-gradient-to-br from-gray-50 to-orange-50/30 rounded-xl p-3 border border-gray-100">
+                    <ScoreDisplay match={match} sportSlug={selectedSport || ''} variant="completed" />
+                  </div>
+                </div>
+              ))}
+            </section>
           )}
         </main>
       </div>

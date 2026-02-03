@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import ComingSoonPage from '../pages/ComingSoonPage'
 import LandingPage from '../pages/LandingPage'
 import LiveScoresPage from '../pages/LiveScoresPage'
+import MatchHistoryPage from '../pages/MatchHistoryPage'
 import TeamsPage from '../pages/TeamsPage'
 import HostelBlocksPage from '../pages/HostelBlocksPage'
 import AboutPage from '../pages/AboutPage'
@@ -23,10 +24,11 @@ export default function App() {
 
   return (
     <>
-      <div className="pb-14 md:pb-24">
+      <div className="pb-24">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/live-scores" element={<LiveScoresPage />} />
+          <Route path="/match-history" element={<MatchHistoryPage />} />
           <Route path="/teams" element={<TeamsPage />} />
           <Route path="/hostel-blocks" element={<HostelBlocksPage />} />
           <Route path="/about" element={<AboutPage />} />
